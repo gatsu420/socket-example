@@ -7,9 +7,13 @@ import (
 	"sync/atomic"
 )
 
-var clientCounter uint32
+type server struct {
+	clientCounter uint32
+}
 
 func main() {
+	srv := &server{}
+
 	listener, err := net.Listen("tcp", ":8080")
 	if err != nil {
 		fmt.Printf("error starting server: %v \n", err)
@@ -24,15 +28,16 @@ func main() {
 			fmt.Printf("error accepting connection: %v \n", err)
 			continue
 		}
-		clientID := atomic.AddUint32(&clientCounter, 1)
-		fmt.Printf("client %v connected \n", clientID)
 
-		go handleConnection(conn, clientID)
+		go srv.handleConnection(conn)
 	}
 }
 
-func handleConnection(conn net.Conn, clientID uint32) {
+func (s *server) handleConnection(conn net.Conn) {
 	defer conn.Close()
+
+	clientID := atomic.AddUint32(&s.clientCounter, 1)
+	fmt.Printf("client %v connected \n", clientID)
 
 	reader := bufio.NewReader(conn)
 	for {
@@ -46,7 +51,7 @@ func handleConnection(conn net.Conn, clientID uint32) {
 		resp := fmt.Sprintf("client %v received message %v", clientID, message)
 		_, err = conn.Write([]byte(resp))
 		if err != nil {
-			fmt.Printf("error sending response message to client%v: %v \n", clientID, err)
+			fmt.Printf("error sending response message to client: %v \n", err)
 			return
 		}
 	}
