@@ -34,12 +34,12 @@ func handleConnection(conn net.Conn) {
 	for {
 		message, err := reader.ReadString('\n')
 		if err != nil {
-			fmt.Printf("client disconnected")
+			fmt.Println("client disconnected")
 			return
 		}
 		fmt.Printf("received from client: %v \n", message)
 
-		resp := "message received: " + message
+		resp := fmt.Sprintf("received message %v", message)
 		_, err = conn.Write([]byte(resp))
 		if err != nil {
 			fmt.Printf("error sending response message: %v \n", err)

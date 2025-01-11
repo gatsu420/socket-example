@@ -32,7 +32,7 @@ func main() {
 
 		resp, err := bufio.NewReader(conn).ReadString('\n')
 		if err != nil {
-			fmt.Printf("error reading response: %v \n", err)
+			fmt.Println("server disconnected")
 			return
 		}
 		fmt.Printf("reading response from server: %v \n", resp)
