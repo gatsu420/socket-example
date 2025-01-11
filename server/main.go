@@ -4,9 +4,16 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"sync/atomic"
 )
 
+type server struct {
+	clientCounter uint32
+}
+
 func main() {
+	srv := &server{}
+
 	listener, err := net.Listen("tcp", ":8080")
 	if err != nil {
 		fmt.Printf("error starting server: %v \n", err)
@@ -21,28 +28,30 @@ func main() {
 			fmt.Printf("error accepting connection: %v \n", err)
 			continue
 		}
-		fmt.Println("client connected")
 
-		go handleConnection(conn)
+		go srv.handleConnection(conn)
 	}
 }
 
-func handleConnection(conn net.Conn) {
+func (s *server) handleConnection(conn net.Conn) {
 	defer conn.Close()
+
+	clientID := atomic.AddUint32(&s.clientCounter, 1)
+	fmt.Printf("client %v connected \n", clientID)
 
 	reader := bufio.NewReader(conn)
 	for {
 		message, err := reader.ReadString('\n')
 		if err != nil {
-			fmt.Println("client disconnected")
+			fmt.Printf("client %v disconnected \n", clientID)
 			return
 		}
-		fmt.Printf("received from client: %v \n", message)
+		fmt.Printf("received from client %v: %v \n", clientID, message)
 
-		resp := fmt.Sprintf("received message %v", message)
+		resp := fmt.Sprintf("client %v received message %v", clientID, message)
 		_, err = conn.Write([]byte(resp))
 		if err != nil {
-			fmt.Printf("error sending response message: %v \n", err)
+			fmt.Printf("error sending response message to client: %v \n", err)
 			return
 		}
 	}
