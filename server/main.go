@@ -8,7 +8,7 @@ import (
 )
 
 type server struct {
-	clientCounter uint32
+	clientCounter atomic.Uint32
 }
 
 func main() {
@@ -36,7 +36,7 @@ func main() {
 func (s *server) handleConnection(conn net.Conn) {
 	defer conn.Close()
 
-	clientID := atomic.AddUint32(&s.clientCounter, 1)
+	clientID := s.clientCounter.Add(1)
 	fmt.Printf("client %v connected \n", clientID)
 
 	reader := bufio.NewReader(conn)
