@@ -49,18 +49,18 @@ func (s *server) handleConnection(conn net.Conn) {
 
 	clientUUID := uuid.NewString()
 
-	s.mu.Lock()
-	s.clientUUIDs[clientUUID] = 0
-	fmt.Printf("client with uuid %v connected \n", clientUUID)
-	fmt.Printf("there are %v clients: %#v \n", len(s.clientUUIDs), s.clientUUIDs)
-	s.mu.Unlock()
+	s.lock(func() {
+		s.clientUUIDs[clientUUID] = 0
+		fmt.Printf("client with uuid %v connected \n", clientUUID)
+		fmt.Printf("there are %v clients: %#v \n", len(s.clientUUIDs), s.clientUUIDs)
+	})
 
 	defer func() {
-		s.mu.Lock()
-		delete(s.clientUUIDs, clientUUID)
-		fmt.Printf("client with uuid %v disconnected \n", clientUUID)
-		fmt.Printf("there are %v clients: %#v \n", len(s.clientUUIDs), s.clientUUIDs)
-		s.mu.Unlock()
+		s.lock(func() {
+			delete(s.clientUUIDs, clientUUID)
+			fmt.Printf("client with uuid %v disconnected \n", clientUUID)
+			fmt.Printf("there are %v clients: %#v \n", len(s.clientUUIDs), s.clientUUIDs)
+		})
 	}()
 
 	reader := bufio.NewReader(conn)
@@ -79,4 +79,11 @@ func (s *server) handleConnection(conn net.Conn) {
 			return
 		}
 	}
+}
+
+func (s *server) lock(fn func()) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	fn()
 }
