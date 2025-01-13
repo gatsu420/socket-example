@@ -4,15 +4,23 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"sync"
 	"sync/atomic"
+
+	"github.com/google/uuid"
 )
 
 type server struct {
+	clientUUIDs map[string]int
+
 	clientCounter atomic.Uint32
+	mu            sync.Mutex
 }
 
 func main() {
-	srv := &server{}
+	srv := &server{
+		clientUUIDs: map[string]int{},
+	}
 
 	listener, err := net.Listen("tcp", ":8080")
 	if err != nil {
@@ -38,6 +46,22 @@ func (s *server) handleConnection(conn net.Conn) {
 
 	clientID := s.clientCounter.Add(1)
 	fmt.Printf("client %v connected \n", clientID)
+
+	clientUUID := uuid.NewString()
+
+	s.mu.Lock()
+	s.clientUUIDs[clientUUID] = 0
+	fmt.Printf("client with uuid %v connected \n", clientUUID)
+	fmt.Printf("there are %v clients: %#v \n", len(s.clientUUIDs), s.clientUUIDs)
+	s.mu.Unlock()
+
+	defer func() {
+		s.mu.Lock()
+		delete(s.clientUUIDs, clientUUID)
+		fmt.Printf("client with uuid %v disconnected \n", clientUUID)
+		fmt.Printf("there are %v clients: %#v \n", len(s.clientUUIDs), s.clientUUIDs)
+		s.mu.Unlock()
+	}()
 
 	reader := bufio.NewReader(conn)
 	for {
